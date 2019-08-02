@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: dep-{{ .Release.Name }}
+  namespace: {{ .Values.nameSpace }}
+spec:
+  replicas: 1
+  serviceName: app-{{ .Values.container.name }}
+  selector:
+    matchLabels:
+        app: app-{{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: app-{{ .Release.Name }}
+    spec:
+     containers:
+      - name: {{ .Values.container.name }}
+        image: {{ .Values.container.image }}
+        imagePullPolicy: IfNotPresent
+        env:
+         - name: ORACLE_SID
+           value: {{ .Values.container.oracle_sid }}
+         - name: ORACLE_PDB
+           value: {{ .Values.container.oracle_pdb }}
+         - name: ORACLE_CHARACTERSET
+           value: {{ .Values.container.oracle_characterset }}
+         - name: ORACLE_PWD
+           value: {{ .Values.container.oracle_pwd }}
+        resources:
+          requests:
+            memory: {{ .Values.resources.requests.memory }}
+            cpu: {{ .Values.resources.requests.cpu }}
+          limits:
+            memory: {{ .Values.resources.limits.memory }}
+            cpu: {{ .Values.resources.limits.cpu }}
+        volumeMounts:
+          - mountPath: /opt/oracle/oradata
+            name: vol-{{ .Values.container.name }}
+        ports:
+        - containerPort: {{ .Values.container.oracle_port }}
+     securityContext:
+        fsGroup: 54322
+  volumeClaimTemplates:
+  - metadata:
+      name: vol-{{ .Values.container.name }}
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: {{ .Values.pvc.storage }} 
+      storageClassName: sc-{{ .Release.Name }}-{{ .Values.sc.zone }}
